@@ -2159,3 +2159,21 @@ function trp_exclude_brikk_theme_form_action( $skip_this_action, $form_action ) 
 
     return $skip_this_action;
 }
+
+/**
+ * Compatibility with PWA plugin https://wordpress.org/plugins/pwa/
+ */
+add_filter('trp_stop_translating_page', 'trp_do_not_translate_service_worker_pages', 10, 2);
+function trp_do_not_translate_service_worker_pages($translate, $output){
+
+    if( isset( $_SERVER['REQUEST_URI'] ) )
+        $request_uri = esc_url_raw( $_SERVER['REQUEST_URI'] );
+    else
+        $request_uri = '';
+
+    if( strpos( $request_uri, 'wp.serviceworker' ) !== false ){
+        return true;
+    }
+
+    return $translate;
+}
