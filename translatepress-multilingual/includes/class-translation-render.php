@@ -130,8 +130,10 @@ class TRP_Translation_Render{
 	    $string_groups = $this->translation_manager->string_groups();
 
         $node_type_categories = apply_filters( 'trp_node_type_categories', array(
-            $string_groups['metainformation'] => array( 'meta_desc', 'page_title', 'meta_desc_img' ),
-            $string_groups['images']          => array( 'image_src' )
+            $string_groups['metainformation']   => array( 'meta_desc', 'page_title', 'meta_desc_img' ),
+            $string_groups['images']            => array( 'image_src', 'picture_source_srcset', 'picture_image_src' ),
+            $string_groups['videos']             => array( 'video_src', 'video_poster', 'video_source_src'),
+            $string_groups['audios']             => array( 'audio_src', 'audio_source_src'),
         ));
 
         foreach( $node_type_categories as $category_name => $node_groups ){
@@ -986,8 +988,7 @@ class TRP_Translation_Render{
                 }
 
             }
-
-            if ( $preview_mode ) {
+            if ( $preview_mode && !empty($translated_string_ids) ) {
                 if ( $accessor == 'outertext' && $nodes[$i]['type'] != 'button' ) {
                     $outertext_details = '<translate-press data-trp-translate-id="' . $translated_string_ids[$translateable_strings[$i]]->id . '" data-trp-node-group="' . $this->get_node_type_category( $nodes[$i]['type'] ) . '"';
                     if ( $this->get_node_description( $nodes[$i] ) ) {
@@ -996,9 +997,26 @@ class TRP_Translation_Render{
                     $outertext_details .= '>' . $nodes[$i]['node']->outertext . '</translate-press>';
                     $nodes[$i]['node']->outertext = $outertext_details;
                 } else {
-                    if( $nodes[$i]['type'] == 'button' || $nodes[$i]['type'] == 'option' ){
+                    // button, option  can not be detected by the pencil, but the parent can.
+                    if( $nodes[$i]['type'] == 'button' ||
+                        $nodes[$i]['type'] == 'option' )
+                    {
                         $nodes[$i]['node'] = $nodes[$i]['node']->parent();
                     }
+
+                    // video without a src can't be detected. So when we detect a video > source tag
+                    // we add the ID to the parent video tag as well
+                    if( $nodes[$i]['type'] == 'video_source_src' ||
+                        $nodes[$i]['type'] == 'audio_source_src' ||
+                        $nodes[$i]['type'] == 'picture_source_srcset')
+                    {
+                        $parent = $nodes[$i]['node']->parent();
+                        if (!array_key_exists('src', $parent->attr)){
+                            $parent->setAttribute('data-trp-translate-id-' . $accessor, $translated_string_ids[ $translateable_strings[$i] ]->id );
+                            $parent->setAttribute('data-trp-node-group-' . $accessor, $this->get_node_type_category( $nodes[$i]['type'] ) );
+                        }
+                    }
+
 	                $nodes[$i]['node']->setAttribute('data-trp-translate-id-' . $accessor, $translated_string_ids[ $translateable_strings[$i] ]->id );
                     $nodes[$i]['node']->setAttribute('data-trp-node-group-' . $accessor, $this->get_node_type_category( $nodes[$i]['type'] ) );
 
@@ -1210,7 +1228,7 @@ class TRP_Translation_Render{
      * Hooked to trp_allow_machine_translation_for_string
      */
     public function allow_machine_translation_for_string( $allow, $entity_decoded_trimmed_string, $current_node_accessor_selector, $node_accessor ){
-    	$skip_attributes = apply_filters( 'trp_skip_machine_translation_for_attr', array( 'href', 'src' ) );
+    	$skip_attributes = apply_filters( 'trp_skip_machine_translation_for_attr', array( 'href', 'src', 'poster', 'srcset' ) );
 	    if ( in_array( $current_node_accessor_selector, $skip_attributes ) ){
 	    	// do not machine translate href and src
 	    	return false;
@@ -1747,7 +1765,42 @@ class TRP_Translation_Render{
                 'selector' => '[aria-label]',
                 'accessor' => 'aria-label',
                 'attribute' => true
-            )
+            ),
+            'video_src' => array(
+                'selector' => 'video[src]',
+                'accessor' => 'src',
+                'attribute' => true
+            ),
+            'video_poster' => array(
+                'selector' => 'video[poster]',
+                'accessor' => 'poster',
+                'attribute' => true
+            ),
+            'video_source_src' => array(
+                'selector' => 'video source[src]',
+                'accessor' => 'src',
+                'attribute' => true
+            ),
+            'audio_src' => array(
+                'selector' => 'audio[src]',
+                'accessor' => 'src',
+                'attribute' => true
+            ),
+            'audio_source_src' => array(
+                'selector' => 'audio source[src]',
+                'accessor' => 'src',
+                'attribute' => true
+            ),
+            'picture_image_src' => array(
+                'selector' => 'picture image[src]',
+                'accessor' => 'src',
+                'attribute' => true
+            ),
+            'picture_source_srcset' => array(
+                'selector' => 'picture source[srcset]',
+                'accessor' => 'srcset',
+                'attribute' => true
+            ),
 	    ));
     }
 
