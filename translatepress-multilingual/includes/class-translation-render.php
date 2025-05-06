@@ -321,6 +321,20 @@ class TRP_Translation_Render{
             // the ideea is that if a dom node contains any top parent tags for blocks it can't be a block itself so we skip it
             $skip = $this->check_children_for_tags( $row, $merge_rules['top_parents'] );
             if( !$skip ) {
+
+                // Defensive: skip if only one child, and that child matches. 
+                // Otwherewise we detect a translation block on the parent of the block since trim strips all HTML and both the parent and child match. 
+                if ( count($row->children) === 1 ) {
+                    $child = $row->children[0];
+                    $child_trimmed_text = $this->trim_translation_block($child->innertext);
+                    foreach ( $all_existing_translation_blocks as $existing_translation_block ) {
+                        if ( $existing_translation_block->trimmed_original === $child_trimmed_text ) {
+                            // child matches, skip parent. We'll be back here with the correct parent where this function is being called. 
+                            return null;
+                        }
+                    }
+                }
+
                 $trimmed_inner_text = $this->trim_translation_block($row->innertext);
                 foreach ($all_existing_translation_blocks as $existing_translation_block) {
                     if ($existing_translation_block->trimmed_original == $trimmed_inner_text) {
@@ -365,18 +379,38 @@ class TRP_Translation_Render{
      */
     public function handle_rest_api_translations($response){
     	if ( isset( $response->data ) ) {
+            $trp = TRP_Translate_Press::get_trp_instance();
+            $url_converter = $trp->get_component( 'url_converter' );
+            $language = $url_converter->get_lang_from_url_string( $url_converter->cur_page_url() );
+
+            if ( $language == $this->settings['default-language'] || $language == null) {
+                return $response; // exit early in default language.
+            }
+
             if ( isset( $response->data['name'] ) ){
                 $response->data['name'] = $this->translate_page( $response->data['name'] );
             }
-		    if ( isset( $response->data['title'] ) && isset( $response->data['title']['rendered'] ) ) {
+		    if (isset($response->data['title']['rendered'])) {
 			    $response->data['title']['rendered'] = $this->translate_page( $response->data['title']['rendered'] );
 		    }
-		    if ( isset( $response->data['excerpt'] ) && isset( $response->data['excerpt']['rendered'] ) ) {
+		    if (isset($response->data['excerpt']['rendered'])) {
 			    $response->data['excerpt']['rendered'] = $this->translate_page( $response->data['excerpt']['rendered'] );
 		    }
-		    if ( isset( $response->data['content'] ) && isset( $response->data['content']['rendered'] ) ) {
+		    if (isset($response->data['content']['rendered'])) {
 			    $response->data['content']['rendered'] = $this->translate_page( $response->data['content']['rendered'] );
 		    }
+            if ( isset( $response->data['description'] ) ) {
+			    $response->data['description'] = $this->translate_page( $response->data['description'] );
+		    }
+            if ( isset( $response->data['slug'] ) && class_exists( 'TRP_Slug_Query' ) ) {
+                $trp_slug_query = new TRP_Slug_Query();
+                $slug_array = array( $response->data['slug'] );
+                $translated_slugs = $trp_slug_query->get_translated_slugs_from_original( $slug_array, $language );
+
+                if ( !empty( $translated_slugs ) && isset( $translated_slugs[$response->data['slug']] ) ) {
+                    $response->data['slug'] = $translated_slugs[$response->data['slug']];
+                }
+            }
 	    }
         return $response;
     }
@@ -385,7 +419,7 @@ class TRP_Translation_Render{
 	 * Apply translation filters for REST API response
 	 */
 	public function add_callbacks_for_translating_rest_api(){
-        $post_types = array_merge(["comment", "category"],get_post_types());
+        $post_types = array_merge(["comment"], get_post_types(), get_taxonomies());
 		foreach ( $post_types as $post_type ) {
 			add_filter( 'rest_prepare_'. $post_type, array( $this, 'handle_rest_api_translations' ) );
 		}
@@ -1576,7 +1610,13 @@ class TRP_Translation_Render{
 
                 $new_strings[ $i ] = $translateable_strings[ $i ];
                 // if the string is not a url then allow machine translation for it
-                if ( $machine_translation_available && !$skip_string && filter_var( $new_strings[ $i ], FILTER_VALIDATE_URL ) === false ) {
+
+                if ( !$this->url_converter ){
+                    $trp = TRP_Translate_Press::get_trp_instance();
+                    $this->url_converter = $trp->get_component('url_converter');
+                }
+
+                if ( $machine_translation_available && !$skip_string && filter_var( $new_strings[ $i ], FILTER_VALIDATE_URL ) === false && !$this->url_converter->url_is_extra( $new_strings[ $i ] ) ) {
                     $machine_translatable_strings[ $i ] = $new_strings[ $i ];
                 }
             }
