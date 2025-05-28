@@ -598,8 +598,8 @@ class TRP_Plugin_Updater{
 
             $trp = TRP_Translate_Press::get_trp_instance();
 
-            if (!empty($trp->active_pro_addons)) {
-                foreach ($trp->active_pro_addons as $active_pro_addon_name) {
+            if (!empty($trp->tp_product_name)) {
+                foreach ($trp->tp_product_name as $active_pro_addon_name) {
                     // data to send in our API request
                     $api_params = array(
                         'edd_action' => 'activate_license',                  //as the license is already activated this does not do anything. We could use check_license action but it gives different results  so we can't use it consistently with the result we get from the moment we activate it
@@ -689,8 +689,8 @@ class TRP_Plugin_Updater{
             $license_information_for_all_addons = array();
 
             $trp = TRP_Translate_Press::get_trp_instance();
-            if( !empty( $trp->active_pro_addons ) ){
-                foreach ( $trp->active_pro_addons as $active_pro_addon_name ){
+            if( !empty( $trp->tp_product_name ) ){
+                foreach ($trp->tp_product_name as $active_pro_addon_name ){
                     // data to send in our API request
                     $api_params = array(
                         'edd_action' => 'activate_license',
@@ -708,11 +708,13 @@ class TRP_Plugin_Updater{
 
                     // make sure the response came back okay
                     if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-
-                        $response_error_message = $response->get_error_message();
-                        $message[] = ( is_wp_error( $response ) && ! empty( $response_error_message ) ) ? $response->get_error_message() : __( 'An error occurred, please try again.', 'translatepress-multilingual' );
-
-                    } else {
+                        $response_error_message = '';
+                        if ( is_wp_error( $response ) && ! empty( $response->get_error_message() ) ) {
+                            $response_error_message = $response->get_error_message();
+                        }
+                        $message[] = ! empty( $response_error_message ) ? $response_error_message : __( 'An error occurred, please try again.', 'translatepress-multilingual' );
+                    }
+                    else {
 
                         $license_data = json_decode( wp_remote_retrieve_body( $response ) );
 
@@ -796,8 +798,8 @@ class TRP_Plugin_Updater{
             $license = trim( $this->get_option( 'trp_license_key' ) );
 
             $trp = TRP_Translate_Press::get_trp_instance();
-            if( !empty( $trp->active_pro_addons ) ){
-                foreach ( $trp->active_pro_addons as $active_pro_addon_name ){//this loop will actually run just once, as we redirect at the end in all cases
+            if( !empty( $trp->tp_product_name ) ){
+                foreach ($trp->tp_product_name as $active_pro_addon_name ){//this loop will actually run just once, as we redirect at the end in all cases
 
                     // data to send in our API request
                     $api_params = array(
@@ -831,6 +833,7 @@ class TRP_Plugin_Updater{
                     // regardless, we delete the record in the client website. Otherwise, if he tries to add a new license, he can't.
                     if( $license_data->license == 'deactivated' || $license_data->license == 'failed') {
                         delete_option( 'trp_license_status' );
+                        delete_option( 'trp_license_details' );
                     }
 
                     wp_redirect( $this->license_page_url() );
