@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * @var string $styles           Inline CSS vars
  * @var string $viewport         Current Viewport
  * @var string $positionClass    Position based class
- * @var string $is_opposite      Is "Show opposite language" checked
+ * @var bool   $is_opposite      Is "Show opposite language" checked
  * @var array  $current_language Current language element
  */
 
@@ -64,10 +64,10 @@ $render_item = function ( $lang, $flag_ratio, $disabled = false ) use ($flag_pos
     <?php endif; ?>
     data-no-translation
 >
-    <?php if ( !empty( $config['showPoweredBy'] ) ) : ?>
+    <?php if ( !empty( $config['showPoweredBy'] ) ) : /* [utm55] */ ?>
         <div id="trp-floater-powered-by">
             Powered by
-            <a href="https://translatepress.com/?utm_source=language_switcher&amp;utm_medium=clientsite&amp;utm_campaign=TPLS"
+            <a href="https://translatepress.com/?utm_source=frontend-ls&amp;utm_medium=client-site&amp;utm_campaign=powered-by-tp"
                rel="nofollow"
                target="_blank"
                title="WordPress Translation Plugin">

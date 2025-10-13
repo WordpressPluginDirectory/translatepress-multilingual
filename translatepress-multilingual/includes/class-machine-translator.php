@@ -51,20 +51,22 @@ class TRP_Machine_Translator {
         ) {
             if ( empty( $languages ) ){
                 // can be used to simply know if machine translation is available
-                return true;
+                $is_available = true;
             }
 
             // If the license is invalid and the translation engine is DeepL,return false
             $license_status = get_option( 'trp_license_status' );
             if ( $license_status !== 'valid' && isset( $this->settings['trp_machine_translation_settings']['translation-engine'] ) && $this->settings['trp_machine_translation_settings']['translation-engine'] === 'deepl' ) {
-                return false;
+                $is_available = false;
             }
 
-            return $this->check_languages_availability($languages);
+            $is_available = $this->check_languages_availability($languages);
 
         }else {
-            return false;
+            $is_available = false;
         }
+
+        return apply_filters('trp_machine_translator_is_available', $is_available);
     }
 
     public function check_languages_availability( $languages, $force_recheck = false ){
@@ -333,7 +335,7 @@ class TRP_Machine_Translator {
             $imploded_strings = implode(" ", $strings);
             $trp_exclude_words_from_automatic_translation = apply_filters('trp_exclude_words_from_automatic_translation', array('%s', '%d', '%', '$', '#'), $imploded_strings);
             $placeholders = $this->get_placeholders(count($trp_exclude_words_from_automatic_translation));
-            $shortcode_tags_to_execute = apply_filters( 'trp_do_these_shortcodes_before_automatic_translation', array('trp_language') );
+            $shortcode_tags_to_execute = apply_filters( 'trp_do_these_shortcodes_before_automatic_translation', array('trp_language', 'language-include', 'language-exclude') );
 
             $strings = array_unique($strings);
             $original_strings = $strings;
