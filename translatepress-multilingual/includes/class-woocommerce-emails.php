@@ -38,6 +38,7 @@ class TRP_Woocommerce_Emails{
             add_action( 'woocommerce_order_status_pending_to_completed_notification', array( $this, 'store_email_order_id' ), 5, 1 );
             add_action( 'woocommerce_order_status_failed_to_completed_notification', array( $this, 'store_email_order_id' ), 5, 1 );
             add_action( 'woocommerce_order_status_cancelled_to_completed_notification', array( $this, 'store_email_order_id' ), 5, 1 );
+            add_action( 'woocommerce_order_status_failed_notification', array( $this, 'store_email_order_id' ), 5, 1 );
 
             // WooCommerce emails when resent by admin
             add_action( 'woocommerce_before_resend_order_emails', array( $this, 'prepare_order_id_for_resend_emails' ), 5, 2 );
