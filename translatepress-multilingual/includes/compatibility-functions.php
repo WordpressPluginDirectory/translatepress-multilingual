@@ -2706,3 +2706,53 @@ function trp_ignore_wp_job_manager_slugs( $translation, $text, $context = null, 
 
     return $translation;
 }
+
+/**
+ * Add trp-post-container wrapper to Divi module outputs
+ * TP is not adding any trp-post-container except here.
+ *
+ * @param string $output The module HTML output
+ * @param string $render_slug The module slug (e.g., 'et_pb_text', 'et_pb_post_title')
+ * @param object $module The module object
+ * @return string Modified output with trp-post-container wrapper
+ */
+add_filter('et_module_shortcode_output', 'trp_divi_wrap_module_with_post_id', 10, 3);
+
+function trp_divi_wrap_module_with_post_id($output, $render_slug, $module) {
+    global $post, $TRP_LANGUAGE;
+
+    // Check if we have a valid post ID
+    if (empty($post->ID)) {
+        return $output;
+    }
+
+    // Get TranslatePress settings
+    $trp = TRP_Translate_Press::get_trp_instance();
+    $trp_settings = $trp->get_component('settings');
+    $settings = $trp_settings->get_settings();
+
+    // Only wrap on non-default language
+    if ($TRP_LANGUAGE !== $settings['default-language']) {
+        // Only wrap modules that typically contain translatable text content
+        $modules_to_wrap = apply_filters('trp_divi_modules_to_wrap', array(
+            'et_pb_text',
+            'et_pb_post_title',
+            'et_pb_post_content',
+            'et_pb_blurb',
+            'et_pb_cta',
+            'et_pb_accordion',
+            'et_pb_toggle',
+            'et_pb_tabs',
+            'et_pb_testimonial',
+            'et_pb_pricing_tables',
+            'et_pb_number_counter',
+            'et_pb_countdown_timer'
+        ));
+
+        if (in_array($render_slug, $modules_to_wrap)) {
+            $output = "<trp-post-container data-trp-post-id='" . $post->ID . "'>" . $output . "</trp-post-container>";
+        }
+    }
+
+    return $output;
+}
