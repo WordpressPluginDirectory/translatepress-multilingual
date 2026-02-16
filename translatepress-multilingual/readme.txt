@@ -3,9 +3,9 @@ Contributors: cozmoslabs, razvan.mo, madalin.ungureanu, sareiodata, cristophor
 Donate link: https://www.translatepress.com/
 Tags: translate, translation, multilingual, automatic translation, bilingual, front-end translation, google translate, language
 Requires at least: 3.1.0
-Tested up to: 6.9
+Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 3.0.6
+Stable tag: 3.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -142,19 +142,9 @@ For more information please check out our [documentation](https://translatepress
 
 
 == Changelog ==
-= 3.0.6 =
-* Extended support for Divi search in secondary languages
-* Fixed redirect loop bug with excluded paths from translation
-* Fixed incorrect gettext resolution in string translation when the site locale differed from the default TranslatePress language, which caused untranslated gettext entries to be populated using translations from the wrong locale
-* Fixed edge case of retranslating the same text multiple times
-* Fixed not detecting texts containing only certain special characters
-* Fixed bug where mini cart menu widget doesn't respect language change
-* Fixed edge case error "Call to a member function is_available() on null"
-* Send emails in recipient's preferred language, in case the recipient is a user
-* Improved INP by deferring dynamic translation detection when original content can be shown first
-* Fixed a bug where the floating language switcher was not displaying all languages (if more than 10 were added and animations disabled)
-* Disable language switcher show opposite language settings in case more than 2 languages are active
-* Fixed deprecated notice for seems_utf8 function on WP 6.9
+= 3.1 =
+* Add a new add-on: Different Domain for Language
+* Fixed a few incorrect entries in the .pot file
 
 = Older versions =
 [Click Here](https://translatepress.com/docs/translatepress-free-changelog/?utm_source=wp.org&utm_medium=tp-description-page&utm_campaign=TPFree) to view the full changelog, or you can find it in the changelog.txt file in the plugin folder.

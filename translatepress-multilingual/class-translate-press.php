@@ -76,7 +76,7 @@ class TRP_Translate_Press{
         define( 'TRP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
         define( 'TRP_PLUGIN_BASE', plugin_basename( __DIR__ . '/index.php' ) );
         define( 'TRP_PLUGIN_SLUG', 'translatepress-multilingual' );
-        define( 'TRP_PLUGIN_VERSION', '3.0.6' );
+        define( 'TRP_PLUGIN_VERSION', '3.1' );
 
 	    wp_cache_add_non_persistent_groups(array('trp'));
 
@@ -154,6 +154,7 @@ class TRP_Translate_Press{
         require_once TRP_PLUGIN_DIR . 'includes/gutenberg-blocks/class-gutenberg-blocks.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-onboarding.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-language-switcher-tab.php';
+        require_once TRP_PLUGIN_DIR . 'includes/class-support-chat.php';
 
         if ( did_action( 'elementor/loaded' ) )
             require_once TRP_PLUGIN_DIR . 'includes/class-elementor-language-for-blocks.php';
@@ -343,7 +344,6 @@ class TRP_Translate_Press{
         $this->loader->add_action( 'wp_ajax_trp_process_js_strings_in_translation_editor', $this->translation_render, 'process_js_strings_in_translation_editor' );
         $this->loader->add_filter( 'trp_skip_selectors_from_dynamic_translation', $this->translation_render, 'skip_base_attributes_from_dynamic_translation', 10, 1 );
 
-        $this->loader->add_action( 'admin_notices', $this->upgrade, 'show_admin_notice_minimum_pro_version_required' );
 	    $this->loader->add_action( 'admin_menu', $this->upgrade, 'register_menu_page' );
         $this->loader->add_action( 'admin_init', $this->upgrade, 'show_admin_error_message' );
 	    $this->loader->add_action( 'admin_init', $this->upgrade, 'show_admin_notice' );
@@ -421,6 +421,7 @@ class TRP_Translate_Press{
         $this->loader->add_filter( "trp_translateable_strings", $this->translation_render, 'antispambot_infinite_detection_fix', 10, 6 );
         $this->loader->add_filter( "trp_allow_machine_translation_for_string", $this->translation_render, 'allow_machine_translation_for_string', 10, 4 );
         $this->loader->add_filter( "trp_allow_machine_translation_for_string", $this->translation_render, 'skip_automatic_translation_for_no_auto_translation_selector', 10, 5 );
+        $this->loader->add_filter( "trp_allow_machine_translation_for_string", $this->translation_render, 'skip_strings_that_cannot_be_auto_translated', 10, 5 );
         $this->loader->add_filter( "rest_pre_echo_response", $this->translation_render, 'handle_generic_rest_api_translations', 10, 3 );
         $this->loader->add_filter( "oembed_response_data", $this->translation_render, 'oembed_response_data', 10, 4 );
 
@@ -435,7 +436,6 @@ class TRP_Translate_Press{
             $this->loader->add_action( 'wp_footer', $this->language_switcher, 'add_floater_language_switcher' );
             $this->loader->add_filter( 'init', $this->language_switcher, 'register_ls_menu_switcher' );
             $this->loader->add_action( 'wp_get_nav_menu_items', $this->language_switcher, 'ls_menu_permalinks', 10, 3 );
-            add_shortcode( 'language-switcher', [ $this->language_switcher, 'language_switcher' ] );
         } else {
             $this->language_switcher = TRP_Language_Switcher_V2::instance( $this->settings->get_settings(), $this );
             $this->loader->add_action( 'init', $this->language_switcher, 'init', 1 );
@@ -445,8 +445,10 @@ class TRP_Translate_Press{
         $this->loader->add_filter( 'template_include', $this->translation_manager, 'translation_editor', 99999 );
         $this->loader->add_filter( 'option_date_format', $this->translation_manager, 'filter_the_date' );
         $this->loader->add_action( 'wp_enqueue_scripts', $this->translation_manager, 'enqueue_preview_scripts_and_styles' );
+        $this->loader->add_action( 'admin_init', $this->translation_manager, 'maybe_dismiss_admin_bar_notification' );
         $this->loader->add_action( 'admin_bar_menu', $this->translation_manager, 'add_shortcut_to_translation_editor', 90, 1 );
         $this->loader->add_action( 'admin_head', $this->translation_manager, 'add_styling_to_admin_bar_button', 10 );
+        $this->loader->add_action( 'wp_head', $this->translation_manager, 'add_styling_to_admin_bar_button', 10 );
         $this->loader->add_filter( 'show_admin_bar', $this->translation_manager, 'hide_admin_bar_when_in_editor', 90 );
         $this->loader->add_action( 'enqueue_block_editor_assets', $this->translation_manager, 'trp_add_shortcut_to_trp_editor_gutenberg', 90);
 
