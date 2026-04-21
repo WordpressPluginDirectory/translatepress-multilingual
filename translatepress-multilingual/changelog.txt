@@ -1,3 +1,34 @@
+= 3.1.5 =
+* Do not query translatepress.com for valid licenses if the license is empty
+* Skip pdf translation by detecting pdf magic characters at the beginning of every pdf file
+* Do not show Upgrade button for Developer license
+* Make languages sortable in free version as well
+
+= 3.1.4 =
+* Fixed some cases where recent translations generated using TranslatePress AI have been incorrectly set to __OPENROUTER_FAILED__
+* Fixed WooCommerce Layered Nav dropdown "Any %s" label untranslatable in visual editor
+* Added extra machine translation data to license check requests
+
+= 3.1.3 =
+* Fixed fatal error when CTX Feed Pro was active
+
+= 3.1.2 =
+* Added AI Words low quota email notification feature
+* Fixed test API key popup not appearing on WP Error
+* Fixed checkbox and radio button styling for WordPress 7.0 compatibility
+* Fixed persistent notification badge in admin sidebar
+* CSS Fixes for WP 7.0 and enable automatic translation on successful license activation in onboarding
+
+= 3.1.1 =
+* Fixed WooCommerce emails being sent in the default language instead of the secondary language (en_US)
+* Prevent gettext marker contamination in DB writes for WooCommerce orders, comments, and options #!trpst#
+* Match language switcher tab width with the rest of the TranslatePress Settings pages
+* Added announcement about Different Domain per Language add-on
+
+= 3.1 =
+* Add a new add-on: Different Domain for Language
+* Fixed a few incorrect entries in the .pot file
+
 = 3.0.9 =
 * Encourage users to engage and ask questions or offer suggestions on wordpress.org forums from TranslatePress Settings
 * Skip shortcode translation inside REST API

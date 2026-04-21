@@ -46,6 +46,9 @@ class TRP_Translate_Press{
     protected $gutenberg_blocks;
     protected $onboarding_setup;
     protected $language_switcher_tab;
+    protected $ai_words_notification;
+
+    protected $batch_processor;
 
     public $tp_product_name = array();
     public static $translate_press = null;
@@ -76,7 +79,7 @@ class TRP_Translate_Press{
         define( 'TRP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
         define( 'TRP_PLUGIN_BASE', plugin_basename( __DIR__ . '/index.php' ) );
         define( 'TRP_PLUGIN_SLUG', 'translatepress-multilingual' );
-        define( 'TRP_PLUGIN_VERSION', '3.1' );
+        define( 'TRP_PLUGIN_VERSION', '3.1.6' );
 
 	    wp_cache_add_non_persistent_groups(array('trp'));
 
@@ -123,6 +126,8 @@ class TRP_Translate_Press{
         require_once TRP_PLUGIN_DIR . 'includes/class-url-converter.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-uri.php';
 	    require_once TRP_PLUGIN_DIR . 'includes/class-upgrade.php';
+	    require_once TRP_PLUGIN_DIR . 'includes/upgrade/class-upgrade-tasks-registry.php';
+	    require_once TRP_PLUGIN_DIR . 'includes/upgrade/class-batch-processor.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-plugin-notices.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-advanced-tab.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-translation-memory.php';
@@ -154,6 +159,7 @@ class TRP_Translate_Press{
         require_once TRP_PLUGIN_DIR . 'includes/gutenberg-blocks/class-gutenberg-blocks.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-onboarding.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-language-switcher-tab.php';
+        require_once TRP_PLUGIN_DIR . 'includes/class-ai-words-notification.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-support-chat.php';
 
         if ( did_action( 'elementor/loaded' ) )
@@ -205,6 +211,8 @@ class TRP_Translate_Press{
         $this->woocommerce_emails         = new TRP_Woocommerce_Emails();
         $this->preferred_user_language    = new TRP_Preferred_User_Language();
         $this->onboarding_setup           = new TRP_Onboarding( $this->settings->get_settings() );
+        $this->ai_words_notification      = new TRP_AI_Words_Notification( $this->settings->get_settings() );
+        $this->batch_processor            = new TRP_Batch_Processor();
 
         //Gutenberg Blocks
         global $wp_version;
