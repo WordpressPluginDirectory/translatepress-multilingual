@@ -385,6 +385,18 @@ class TRP_Machine_Translator {
             return false;
         }
 
+        // Standalone media file references with no scheme: a bare filename ("photo.png"), a relative
+        // path ("wp-content/uploads/2026/06/img.webp"), a protocol-relative URL ("//cdn.com/a.jpg"),
+        // or a srcset-style comma list of these with width/density descriptors ("a.png 300w, b.png 600w").
+        // The https:// rule above misses these because they have no scheme, so image/media file names
+        // would otherwise be sent for machine translation. Anchored to the whole string so real prose
+        // that merely mentions a file (e.g. "Download report.pdf now") is left translatable.
+        $media_ext = 'png|jpe?g|gif|bmp|webp|avif|svg|ico|tiff?|mp4|m4v|webm|ogv|mov|avi|mp3|ogg|wav|m4a|flac|pdf';
+        $media_ref = '\S+\.(?:' . $media_ext . ')(?:\?\S*)?';
+        if ( preg_match( '/^' . $media_ref . '(?:\s+\d+(?:\.\d+)?[wx])?(?:\s*,\s*' . $media_ref . '(?:\s+\d+(?:\.\d+)?[wx])?)*$/i', $trimmed ) ) {
+            return false;
+        }
+
         // HTML media/void tags that are purely markup (no meaningful translatable text outside attributes)
         if ( preg_match( '/^<(img|source|video|picture|input|br|hr|meta|link)\s/i', $trimmed ) && ! preg_match( '/>([^<]{10,})</', $trimmed ) ) {
             return false;
@@ -410,8 +422,63 @@ class TRP_Machine_Translator {
             return false;
         }
 
-        // JavaScript code blocks
-        if ( preg_match( '/^\(\s*function\s*\(/', $trimmed ) || preg_match( '/^(var|let|const|function)\s+\w+\s*[=(]/', $trimmed ) ) {
+        // JavaScript code blocks.
+        // Inline/minified scripts (GTM, gtag, analytics, etc.) sometimes reach this point, often
+        // split into arbitrary ~2KB chunks that start mid-statement. The patterns below are loose
+        // on purpose and matched anywhere in the string (not anchored to the start) so a chunk that
+        // begins in the middle of an expression is still recognised. They look for syntax that does
+        // not occur in natural-language content. Designed against real machine_translation_log data.
+
+        // A "prose run" = 3+ consecutive natural-language words (3+ letters each, separated only by
+        // spaces/common punctuation). Minified JS has no such runs; help text and UI labels do. It
+        // is used below to exempt only the loosest JS signals from matching genuine content.
+        $has_prose_run = preg_match( '/(?:\b\p{L}{3,}\b[\s,.\'’]+){2,}\b\p{L}{3,}\b/u', $trimmed );
+
+        // Structural keywords: anchored function/var declarations, function expressions, for/var
+        // declarations, `new Foo(`, control flow and operator keywords. These never occur in prose.
+        if ( preg_match( '/^\(\s*function\s*\(/', $trimmed )
+            || preg_match( '/=\s*function\s*\(/', $trimmed )
+            || preg_match( '/^(var|let|const|function)\s+\w+\s*[=(]/', $trimmed )
+            || preg_match( '/\bfor\s*\(\s*var\s/', $trimmed )
+            || preg_match( '/;\s*var\s+[\w$]/', $trimmed )
+            || preg_match( '/=\s*new\s+[A-Z]\w*\(/', $trimmed )
+            || preg_match( '/\belse\s+if\s*\(/', $trimmed )
+            || preg_match( '/;\s*case\s/', $trimmed )
+            || preg_match( '/\b(typeof|instanceof)\b/', $trimmed ) ) {
+            return false;
+        }
+
+        // Object/member idioms: prototype chains, the `void 0` minifier idiom, BigInt(), and the
+        // common built-in method calls minifiers emit (e.g. `.push(`, `.charCodeAt(`).
+        if ( preg_match( '/\.prototype\./', $trimmed )
+            || preg_match( '/\bvoid 0\b/', $trimmed )
+            || preg_match( '/\bBigInt\s*\(/', $trimmed )
+            || preg_match( '/\.(push|pop|shift|unshift|charCodeAt|charAt|substring|substr|indexOf|lastIndexOf|slice|splice|concat|toString|hasOwnProperty|call|apply|replace|split|join|sort|filter|map|forEach)\s*\(/', $trimmed ) ) {
+            return false;
+        }
+
+        // Minified operator "soup" (strict members): `.length` access, pre/post increment inside a
+        // loop, ternaries like `)?1:0` and array indexing like `=a[b`.
+        if ( preg_match( '/\b\w+\.length\b/', $trimmed )
+            || preg_match( '/\+\+[a-z]\)|[a-z]\+\+\)/', $trimmed )
+            || preg_match( '/\)\?[\w\'"]+:/', $trimmed )
+            || preg_match( '/=\w+\[\w/', $trimmed ) ) {
+            return false;
+        }
+
+        // Base64/URL-safe charset table emitted by consent-string builders (e.g. GTM). The full
+        // ordered alphabet run never appears in natural language.
+        if ( preg_match( '/0123456789abcdefghijklmnopqrstuvwxyz/i', $trimmed ) ) {
+            return false;
+        }
+
+        // Loose JS signals: a minified `function x(a,b){`, bitwise shifts (`<<x`/`x>>`), and logical
+        // operators (`&&`/`||`). These can appear in genuine content (CTAs ending in `>>`, help text
+        // quoting code, URLs/search titles with `||`), so they only fire when there is NO prose run.
+        if ( ! $has_prose_run && (
+               preg_match( '/\bfunction\s*[\w$]*\s*\([\w$,\s]*\)\s*\{/', $trimmed )
+            || preg_match( '/<<\w|\w>>>?/', $trimmed )
+            || preg_match( '/&&|\|\|/', $trimmed ) ) ) {
             return false;
         }
 
@@ -469,7 +536,7 @@ class TRP_Machine_Translator {
             /* google has a problem translating this characters ( '%', '$', '#' )...for some reasons it puts spaces after them so we need to 'encode' them and decode them back. hopefully it won't break anything important */
             /* we put '%s' before '%' because google seems to transform %s into % in strings for some languages which causes a 500 Fatal Error in PHP 8*/
             $imploded_strings = implode(" ", $strings);
-            $trp_exclude_words_from_automatic_translation = apply_filters('trp_exclude_words_from_automatic_translation', array('%s', '%d', '%', '$', '#'), $imploded_strings);
+            $trp_exclude_words_from_automatic_translation = apply_filters('trp_exclude_words_from_automatic_translation', array('%s', '%d', '%', '$', '#'), $imploded_strings, $target_language_code, $source_language_code);
             $placeholders = $this->get_placeholders(count($trp_exclude_words_from_automatic_translation));
             $shortcode_tags_to_execute = apply_filters( 'trp_do_these_shortcodes_before_automatic_translation', array('trp_language', 'language-include', 'language-exclude') );
 
@@ -504,22 +571,17 @@ class TRP_Machine_Translator {
                 $strings[$key] = trp_do_these_shortcodes( $strings[$key], $shortcode_tags_to_execute );
             }
 
-            if ( $this->settings['trp_machine_translation_settings']['translation-engine'] === 'deepl' ) {
-
-                // if we don't have a valid license, return an empty array
-                $license_status = get_option( 'trp_license_status' );
-                if( $license_status !== 'valid' ){
-                    return array();
-                }
-            }
-
             $machine_strings = $this->translate_array($strings, $target_language_code, $source_language_code);
 
             $machine_strings_return_array = array();
             if (!empty($machine_strings)) {
                 foreach ($machine_strings as $key => $machine_string) {
-                    // Restore placeholders to original excluded words
-                    $processed_string = str_ireplace( $placeholders, $trp_exclude_words_from_automatic_translation, $machine_string );
+                    // Restore placeholders to original excluded words (or to user-driven replacements via filter)
+                    $trp_replace_placeholders_with = apply_filters( 'trp_replace_placeholders_with', $trp_exclude_words_from_automatic_translation, $trp_exclude_words_from_automatic_translation, $placeholders, $machine_string, $original_strings[$key], $target_language_code, $source_language_code );
+                    if ( !is_array( $trp_replace_placeholders_with ) || count( $trp_replace_placeholders_with ) !== count( $placeholders ) ) {
+                        $trp_replace_placeholders_with = $trp_exclude_words_from_automatic_translation;
+                    }
+                    $processed_string = str_ireplace( $placeholders, $trp_replace_placeholders_with, $machine_string );
 
                     // Restore quote patterns (use $strings which is decoded, not $original_strings with HTML entities)
                     $processed_string = $this->restore_translation_quotes($strings[$key], $processed_string);
@@ -540,6 +602,19 @@ class TRP_Machine_Translator {
         }else {
             return array();
         }
+    }
+
+    /**
+     * Maximum number of strings the engine sends to the API in a single request.
+     *
+     * Frontend callers (regular DOM + gettext) chunk by this size and save each chunk to the
+     * database before requesting the next one, so an aborted/overlapping page load never re-sends
+     * (and re-bills) an already-saved chunk. Engines override this with their own API limit.
+     *
+     * @return int
+     */
+    public function get_chunk_size() {
+        return 50;
     }
 
     /**

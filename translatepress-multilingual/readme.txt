@@ -3,9 +3,9 @@ Contributors: cozmoslabs, razvan.mo, madalin.ungureanu, sareiodata, cristophor
 Donate link: https://www.translatepress.com/
 Tags: translate, translation, multilingual, automatic translation, ai translation, front-end translation, google translate, language
 Requires at least: 3.1.0
-Tested up to: 7.0
+Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 3.2
+Stable tag: 3.3.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,25 @@ TranslatePress - Multilingual has a range of [premium Add-ons](https://translate
 
 You can test out TranslatePress - Multilingual plugin by [visiting our demo site](https://demo.translatepress.com/?utm_source=wp.org&utm_medium=tp-description-page&utm_campaign=TPFree)
 
+== External Services ==
+
+This plugin connects to the TranslatePress AI translation service to perform automatic translations. Data sent includes page text, license key, site URL, and language settings. This may be triggered by front-end page visits, not just admin actions.
+If you opt in, the plugin sends limited diagnostic and configuration data to Cozmoslabs.com to help improve the  product.
+
+Terms & Conditions: https://translatepress.com/terms-conditions/
+Privacy Policy: https://translatepress.com/privacy-policy/
+
+If you choose to use Google Translate or DeepL as your translation engine and provide your own API key, content from your site will be sent to those services for translation. This may also be triggered by front-end page visits.
+
+Google Translate Terms of Service: https://cloud.google.com/terms/
+Google Privacy Policy: https://policies.google.com/privacy
+
+DeepL Terms of Service: https://www.deepl.com/en/pro-license
+DeepL Privacy Policy: https://www.deepl.com/en/privacy
+
+The plugin requests translation files of other plugins hosted on WordPress.org.
+Select2: [https://github.com/select2/select2](https://github.com/select2/select2)
+
 == Installation ==
 
 1. Upload the translatepress folder to the '/wp-content/plugins/' directory
@@ -134,6 +153,9 @@ Yes, TranslatePress works out of the box with WooCommerce. You can use to build 
 
 For more information please check out our [documentation](https://translatepress.com/docs/translatepress/?utm_source=wp.org&utm_medium=tp-description-page&utm_campaign=TPFree).
 
+= Where do I report security bugs found in this plugin? =
+
+Please report security bugs found in the source code of the TranslatePress plugin through the [Patchstack Vulnerability Disclosure  Program](https://patchstack.com/database/vdp/55520b61-434d-4271-801d-b55f75b5cbe1). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
 
 == Screenshots ==
 1. TranslatePress front-end visual translation editor in action
@@ -147,24 +169,25 @@ For more information please check out our [documentation](https://translatepress
 
 
 == Changelog ==
-= 3.2 =
-* Localize TranslatePress user interface in the most popular languages WordPress is being used in
-* Reduce automatic translation costs by improving the filtering of translatable text
-* Improve original string lookup performance for large translation tables
-* Added Ivory Search compatibility for secondary-language search
-* Added Bricks compatibility for language switcher
-* Support UNIX socket DB connections in trp-ajax.php
-* Preserve JSON query params in language switcher URLs
-* Fixed edge case JS error: invalid assignment to const 'i'
-* Fixed illegal string offset warning in class-reviews.php
-* Fixed PHP warning for undefined oppositeLanguage key in language switcher v2
-* Fixed an issue where the menu language switcher could incorrectly save and reuse the current-language-menu-item class for the default language, causing it to appear active alongside the actual current language
-* Fixed WPRocket Preloading that was causing preloaded pages to serve a different language
-* Fixed edge case error when gettext translation has incorrect number of placeholders
-* Fixed simple_html_dom mangling unquoted attributes followed by tab/newline
-* Fixed Translate Site button URL not adding language slug for subdirectory default language
-* Fixed undefined ID column in Gettext/Regular String Translation tables
-* Fixed Vue.js error in Regular tab strings table in some edge cases
+= 3.3.2 =
+* Fixed security issue regarding sensitive information exposure. Thanks to momopon1415 and the Wordfence team
+* Ensure Divi Builder always loads in the default language
+* Fixed infinite recursion on HTTPS REST requests with multibyte UTF-8 usernames
+
+= 3.3.1 =
+* Fixed cases of gettext database optimization failure due to index creation issues
+* Fixed cases of illegal mix of collation issues when running gettext database optimization
+
+= 3.3 =
+* Fixed XSS vulnerability with gettext markers in comments. Thanks to Pham Duc Anh and the Wordfence team for the report
+* Fixed XSS vulnerability in Translation Editor strings dropdown. Thanks to momopon1415 and the Wordfence team for the report
+* Improved page loading time by better handling gettext translations
+* Fixed WooCommerce remove from cart product title not translated
+* Fixed Elementor homepage editor hanging when default-language subdirectory is enabled
+* Fixed conflict with Mailster plugin
+* Fixed hidden API credential test fields
+* Fixed trp-ajax issues when having escaped db credentials
+* Prevent interference with robots.txt
 
 = Older versions =
 [Click Here](https://translatepress.com/docs/translatepress-free-changelog/?utm_source=wp.org&utm_medium=tp-description-page&utm_campaign=TPFree) to view the full changelog, or you can find it in the changelog.txt file in the plugin folder.

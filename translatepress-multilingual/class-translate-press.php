@@ -45,8 +45,11 @@ class TRP_Translate_Press{
     protected $preferred_user_language;
     protected $gutenberg_blocks;
     protected $onboarding_setup;
+    protected $abilities;
     protected $language_switcher_tab;
     protected $ai_words_notification;
+    protected $glossary;
+    protected $glossary_queries;
 
     protected $batch_processor;
 
@@ -79,7 +82,7 @@ class TRP_Translate_Press{
         define( 'TRP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
         define( 'TRP_PLUGIN_BASE', plugin_basename( __DIR__ . '/index.php' ) );
         define( 'TRP_PLUGIN_SLUG', 'translatepress-multilingual' );
-        define( 'TRP_PLUGIN_VERSION', '3.2' );
+        define( 'TRP_PLUGIN_VERSION', '3.3.2' );
 
 	    wp_cache_add_non_persistent_groups(array('trp'));
 
@@ -117,6 +120,8 @@ class TRP_Translate_Press{
         require_once TRP_PLUGIN_DIR . 'includes/class-language-switcher-v2.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-machine-translator.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-machine-translator-logger.php';
+        require_once TRP_PLUGIN_DIR . 'includes/glossary/class-glossary.php';
+        require_once TRP_PLUGIN_DIR . 'includes/glossary/class-glossary-queries.php';
         require_once TRP_PLUGIN_DIR . 'includes/queries/class-query.php';
         require_once TRP_PLUGIN_DIR . 'includes/queries/class-gettext-normalization.php';
         require_once TRP_PLUGIN_DIR . 'includes/queries/class-gettext-table-creation.php';
@@ -158,6 +163,7 @@ class TRP_Translate_Press{
         require_once TRP_PLUGIN_DIR . 'includes/class-preferred-user-language.php';
         require_once TRP_PLUGIN_DIR . 'includes/gutenberg-blocks/class-gutenberg-blocks.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-onboarding.php';
+        require_once TRP_PLUGIN_DIR . 'includes/class-abilities.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-language-switcher-tab.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-ai-words-notification.php';
         require_once TRP_PLUGIN_DIR . 'includes/class-support-chat.php';
@@ -191,13 +197,15 @@ class TRP_Translate_Press{
         $this->query                      = new TRP_Query( $this->settings->get_settings() );
         $this->machine_translator_logger  = new TRP_Machine_Translator_Logger( $this->settings->get_settings() );
         $this->machine_translator         = new TRP_Machine_Translator( $this->settings->get_settings() ); // Will be overwritten in init_machine_translation with the actual machine translator class. Use this as replacement until then.
+        $this->glossary                   = new TRP_Glossary( $this->settings->get_settings() );
+        $this->glossary_queries           = new TRP_Glossary_Queries( $this->settings->get_settings() );
         $this->translation_manager        = new TRP_Translation_Manager( $this->settings->get_settings() );
         $this->editor_api_regular_strings = new TRP_Editor_Api_Regular_Strings( $this->settings->get_settings() );
         $this->editor_api_gettext_strings = new TRP_Editor_Api_Gettext_Strings( $this->settings->get_settings() );
         $this->notifications              = new TRP_Trigger_Plugin_Notifications( $this->settings->get_settings() );
         $this->upgrade                    = new TRP_Upgrade( $this->settings->get_settings() );
-        $this->plugin_updater             = new TRP_Plugin_Updater();
-        $this->license_page               = new TRP_LICENSE_PAGE();
+        $this->plugin_updater             = new TRP_AI_API_Key_Check();
+        $this->license_page               = new TRP_AI_API_KEY();
         $this->translation_memory         = new TRP_Translation_Memory( $this->settings->get_settings() );
         $this->error_manager              = new TRP_Error_Manager( $this->settings->get_settings() );
         $this->string_translation         = new TRP_String_Translation( $this->settings->get_settings(), $this->loader );
@@ -211,6 +219,7 @@ class TRP_Translate_Press{
         $this->woocommerce_emails         = new TRP_Woocommerce_Emails();
         $this->preferred_user_language    = new TRP_Preferred_User_Language();
         $this->onboarding_setup           = new TRP_Onboarding( $this->settings->get_settings() );
+        $this->abilities                  = new TRP_Abilities();
         $this->ai_words_notification      = new TRP_AI_Words_Notification( $this->settings->get_settings() );
         $this->batch_processor            = new TRP_Batch_Processor();
 
@@ -317,9 +326,28 @@ class TRP_Translate_Press{
         $this->loader->add_action( 'admin_init',        $this->machine_translation_tab, 'register_setting' );
         $this->loader->add_action( 'admin_notices',     $this->machine_translation_tab, 'admin_notices' );
         $this->loader->add_action( 'trp_machine_translation_extra_settings_bottom',     $this->machine_translation_tab, 'display_unsupported_languages' );
+        $this->loader->add_action( 'trp_before_output_machine_translation_settings_options', $this->machine_translation_tab, 'trp_machine_translation_content_table' );
 
         //Machine Translation Logger defaults
         $this->loader->add_action( 'trp_machine_translation_sanitize_settings', $this->machine_translator_logger, 'sanitize_settings', 10, 1 );
+
+        //Glossary substitutions during machine translation
+        $this->loader->add_filter( 'trp_exclude_words_from_automatic_translation', $this->glossary, 'add_excluded_words', 10, 3 );
+        $this->loader->add_filter( 'trp_replace_placeholders_with', $this->glossary, 'apply_replacements', 10, 7 );
+
+        //Glossary settings page
+        $this->loader->add_action( 'admin_menu',    $this->glossary, 'add_submenu_page' );
+        $this->loader->add_action( 'admin_init',    $this->glossary, 'register_setting' );
+        $this->loader->add_action( 'admin_notices', $this->glossary, 'admin_notices' );
+
+        $this->loader->add_action( 'admin_menu',                             $this->glossary_queries, 'add_replace_submenu_page' );
+        $this->loader->add_action( 'admin_enqueue_scripts',                  $this->glossary_queries, 'enqueue_scripts' );
+        $this->loader->add_action( 'wp_ajax_trp_glossary_get_terms',         $this->glossary_queries, 'ajax_get_terms' );
+        $this->loader->add_action( 'wp_ajax_trp_glossary_add_term',          $this->glossary_queries, 'add_term' );
+        $this->loader->add_action( 'wp_ajax_trp_glossary_edit_term',         $this->glossary_queries, 'edit_term' );
+        $this->loader->add_action( 'wp_ajax_trp_glossary_delete_term',       $this->glossary_queries, 'delete_term' );
+        $this->loader->add_action( 'wp_ajax_trp_glossary_replace_in_dictionary', $this->glossary_queries, 'replace_in_dictionary' );
+        $this->loader->add_action( 'wp_ajax_trp_glossary_search_dictionary',     $this->glossary_queries, 'search_dictionary' );
 
         //Error manager hooks
         $this->loader->add_action( 'admin_init', $this->error_manager, 'show_notification_about_errors', 10 );
@@ -330,8 +358,11 @@ class TRP_Translate_Press{
         $this->loader->add_filter( 'trp_error_manager_page_output', $this->error_manager, 'output_db_errors', 10, 1 );
         $this->loader->add_action('load-admin_page_trp_error_manager', $this->error_manager, 'disable_error_after_click_link', 10);
 
-        $this->loader->add_action( 'wp_ajax_nopriv_trp_get_translations_regular', $this->editor_api_regular_strings, 'get_translations' );
+        // Front-end dynamic translation (DOM changes). Safe for logged-out visitors
+        $this->loader->add_action( 'wp_ajax_nopriv_trp_get_translations_domchanges', $this->editor_api_regular_strings, 'get_translations_domchanges' );
+        $this->loader->add_action( 'wp_ajax_trp_get_translations_domchanges', $this->editor_api_regular_strings, 'get_translations_domchanges' );
 
+        // Editor-only (authenticated + capability-gated inside get_translations).
 	    $this->loader->add_action( 'wp_ajax_trp_get_translations_regular', $this->editor_api_regular_strings, 'get_translations' );
         $this->loader->add_action( 'wp_ajax_trp_save_translations_regular', $this->editor_api_regular_strings, 'save_translations' );
         $this->loader->add_action( 'wp_ajax_trp_split_translation_block', $this->editor_api_regular_strings, 'split_translation_block' );
@@ -354,6 +385,7 @@ class TRP_Translate_Press{
 
 	    $this->loader->add_action( 'admin_menu', $this->upgrade, 'register_menu_page' );
         $this->loader->add_action( 'admin_init', $this->upgrade, 'show_admin_error_message' );
+        $this->loader->add_action( 'admin_init', $this->upgrade, 'maybe_start_gettext_tables_optimization_from_notice' );
 	    $this->loader->add_action( 'admin_init', $this->upgrade, 'show_admin_notice' );
 	    $this->loader->add_action( 'admin_init', $this->upgrade, 'show_notification_about_add_ons_removal' );
         $this->loader->add_action( 'admin_init', $this->upgrade, 'trp_prepare_options_for_database_optimization' );
@@ -365,20 +397,16 @@ class TRP_Translate_Press{
 
         /* add hooks for license operations  */
         if( !empty( $this->tp_product_name ) ) {
-            $this->loader->add_action('admin_init', $this->plugin_updater, 'activate_license');
-            if(!array_key_exists('translatepress-multilingual', $this->tp_product_name)){
-                // check for license updates for paid licenses only. Accessing the License tab directly does the same thing.
-                $this->loader->add_filter('pre_set_site_transient_update_plugins', $this->plugin_updater, 'check_license');
-            }
-            $this->loader->add_action('admin_init', $this->plugin_updater, 'deactivate_license');
+            $this->loader->add_action('admin_init', $this->plugin_updater, 'activate_tp_api_key');
+            $this->loader->add_action('admin_init', $this->plugin_updater, 'deactivate_tp_api_key');
         }
 
         /* add license page */
         global $trp_license_page;//this global was used in the addons, so we need to use it here also so we don't initialize the license page multiple times (backward compatibility)
         if( !isset( $trp_license_page )  ) {
             $trp_license_page = $this->license_page;
-            $this->loader->add_action('admin_menu', $this->license_page, 'license_menu');
-            $this->loader->add_action('admin_init', $this->license_page, 'register_license_setting');
+            $this->loader->add_action('admin_menu', $this->license_page, 'tp_api_key_menu');
+            $this->loader->add_action('admin_init', $this->license_page, 'register_tp_api_key_setting');
         }
 
         $this->loader->add_action( 'admin_init', $this->reviews, 'display_review_notice' );
@@ -432,6 +460,7 @@ class TRP_Translate_Press{
         $this->loader->add_filter( "trp_allow_machine_translation_for_string", $this->translation_render, 'skip_strings_that_cannot_be_auto_translated', 10, 5 );
         $this->loader->add_filter( "rest_pre_echo_response", $this->translation_render, 'handle_generic_rest_api_translations', 10, 3 );
         $this->loader->add_filter( "oembed_response_data", $this->translation_render, 'oembed_response_data', 10, 4 );
+        $this->loader->add_filter( "trp_translated_html", $this->translation_render, 'restore_feed_camelcase_tags', 10, 4 );
 
         /* add custom containers for post content and pots title so we can identify string that are part of them */
         $this->loader->add_filter( "the_content", $this->translation_render, 'wrap_with_post_id', 1000 );
