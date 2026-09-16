@@ -407,12 +407,24 @@
 <?php __("Update aborted! Your user account doesn't have the capability to perform database updates.", "translatepress-multilingual"); ?>
 <?php __("Update aborted! Invalid nonce.", "translatepress-multilingual"); ?>
 <?php __("Update aborted! Incorrect action.", "translatepress-multilingual"); ?>
+<?php __("Update aborted! Start the gettext database optimization separately from the Advanced settings page.", "translatepress-multilingual"); ?>
 <?php __("Update aborted! Incorrect language code.", "translatepress-multilingual"); ?>
 <?php __("Updating database to version %s+", "translatepress-multilingual"); ?>
 <?php __("Processing table for language %s...", "translatepress-multilingual"); ?>
 <?php __("Back to TranslatePress Settings", "translatepress-multilingual"); ?>
 <?php __("Successfully updated database!", "translatepress-multilingual"); ?>
 <?php __(" done.", "translatepress-multilingual"); ?>
+<?php __("Update aborted while %1$s. SQL error: %2$s", "translatepress-multilingual"); ?>
+<?php __("inserting original strings", "translatepress-multilingual"); ?>
+<?php __("checking original string insertion progress", "translatepress-multilingual"); ?>
+<?php __("cleaning duplicate original strings", "translatepress-multilingual"); ?>
+<?php __("updating original string IDs", "translatepress-multilingual"); ?>
+<?php __("checking original string ID update progress", "translatepress-multilingual"); ?>
+<?php __("inserting gettext original strings", "translatepress-multilingual"); ?>
+<?php __("checking gettext original insertion progress", "translatepress-multilingual"); ?>
+<?php __("cleaning duplicate gettext original strings", "translatepress-multilingual"); ?>
+<?php __("updating gettext original string IDs", "translatepress-multilingual"); ?>
+<?php __("checking gettext original string ID update progress", "translatepress-multilingual"); ?>
 <?php __("All individual TranslatePress add-on plugins <a href=\"%1$s\" target=\"_blank\">have been discontinued</a> and are now included in the premium Personal, Business and Developer versions of TranslatePress. Please log into your <a href=\"%2$s\" target=\"_blank\">account page</a>, download the new premium version and install it. Your individual addons settings will be ported over.", "translatepress-multilingual"); ?>
 <?php __("Brand-new Language Switcher Settings are here!", "translatepress-multilingual"); ?>
 <?php __("Explore pre-made templates, switch colors, flag styles, spacing, layouts & more. Use the live preview to perfect your switcher in seconds.", "translatepress-multilingual"); ?>
@@ -1005,8 +1017,8 @@
 <?php __("URL Slugs Translation", "translatepress-multilingual"); ?>
 <?php __("String Translation Editor", "translatepress-multilingual"); ?>
 <?php __("Every minute", "translatepress-multilingual"); ?>
-<?php __("Waiting to start background processing...", "translatepress-multilingual"); ?>
 <?php __("Could not load the background task.", "translatepress-multilingual"); ?>
+<?php __("Waiting to start background processing...", "translatepress-multilingual"); ?>
 <?php __("Background processing could not start.", "translatepress-multilingual"); ?>
 <?php __("Background processing completed.", "translatepress-multilingual"); ?>
 <?php __("A previous batch item failed.", "translatepress-multilingual"); ?>
@@ -1022,6 +1034,9 @@
 <?php __("TranslatePress has detected and cleaned up some failed translation entries in your database following %1$san isolated incident%2$s. No further action is required.", "translatepress-multilingual"); ?>
 <?php __("Post Slug", "translatepress-multilingual"); ?>
 <?php __("Invalid language code", "translatepress-multilingual"); ?>
+<?php __("We've detected you might be speaking a different language. Do you want to change to:", "translatepress-multilingual"); ?>
+<?php __("Change Language", "translatepress-multilingual"); ?>
+<?php __("Close and do not switch language", "translatepress-multilingual"); ?>
 <?php __("First by browser language, then IP address (recommended)", "translatepress-multilingual"); ?>
 <?php __("First by IP address, then by browser language", "translatepress-multilingual"); ?>
 <?php __("Only by browser language", "translatepress-multilingual"); ?>
@@ -1030,19 +1045,11 @@
 <?php __("Redirect directly (*not recommended)", "translatepress-multilingual"); ?>
 <?php __("Pop-up window over the content", "translatepress-multilingual"); ?>
 <?php __("Hello bar before the content", "translatepress-multilingual"); ?>
+<?php __("Automatic User Language Detection requires a newer version of TranslatePress to use its visual settings interface. The legacy settings form will remain available until TranslatePress is updated.", "translatepress-multilingual"); ?>
+<?php __("Update TranslatePress", "translatepress-multilingual"); ?>
 <?php __("WARNING. Cannot determine your language preference based on your current IP.<br>This is most likely because the website is on a local environment.", "translatepress-multilingual"); ?>
+<?php __("Invalid settings.", "translatepress-multilingual"); ?>
 <?php __("Go to <a href=\"%s\" target=\"_self\">Advanced</a> tab to change this feature's settings", "translatepress-multilingual"); ?>
-<?php __("User Language Detection Method", "translatepress-multilingual"); ?>
-<?php __("Select how the language should be detected for first time visitors.<br>The visitor's last displayed language will be remembered through cookies.", "translatepress-multilingual"); ?>
-<?php __("User Notification Popup", "translatepress-multilingual"); ?>
-<?php __("A popup appears asking the user if they want to be redirected.", "translatepress-multilingual"); ?>
-<?php __("Popup Type", "translatepress-multilingual"); ?>
-<?php __("Popup Text", "translatepress-multilingual"); ?>
-<?php __("The same text is displayed in all languages. <br>A selecting language switcher will be appended to the pop-up. The detected language is pre-selected.", "translatepress-multilingual"); ?>
-<?php __("Button Text", "translatepress-multilingual"); ?>
-<?php __("Write the text you wish to appear on the button..", "translatepress-multilingual"); ?>
-<?php __("Close Button Text", "translatepress-multilingual"); ?>
-<?php __("Write the text you wish to appear on the close button. Leave empty for just the close button.", "translatepress-multilingual"); ?>
 <?php __("Bad request. There was an error accessing the DeepL API.", "translatepress-multilingual"); ?>
 <?php __("The API key entered is invalid.", "translatepress-multilingual"); ?>
 <?php __("The API resource could not be found.", "translatepress-multilingual"); ?>
@@ -1063,9 +1070,9 @@
 <?php __("Allow this user to translate the website.", "translatepress-multilingual"); ?>
 <?php __("Update aborted! Unknown gettext lookup hash migration phase: %s.", "translatepress-multilingual"); ?>
 <?php __("Update aborted! Could not find an available gettext original_id index name for table %s.", "translatepress-multilingual"); ?>
+<?php __("Update aborted! Gettext lookup hash migration cannot process invalid ID %1$d in table %2$s. Repair the table ID schema and retry.", "translatepress-multilingual"); ?>
 <?php __("Update aborted! Table %1$s still references %2$d duplicate gettext original ids.", "translatepress-multilingual"); ?>
 <?php __("Update aborted! Gettext original meta still references %d duplicate original ids.", "translatepress-multilingual"); ?>
-<?php __("Update aborted while %1$s. SQL error: %2$s", "translatepress-multilingual"); ?>
 <?php __("Gettext database optimization completed.", "translatepress-multilingual"); ?>
 <?php __("Deduplicating gettext translation tables...", "translatepress-multilingual"); ?>
 <?php __("Migrating gettext original lookup hashes...", "translatepress-multilingual"); ?>

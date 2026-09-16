@@ -2037,9 +2037,13 @@ class TRP_Translation_Render{
                         'translated'  => trp_sanitize_string( $translated ),
                         'status'      => $this->trp_query->get_constant_machine_translated() );
                 }
+                // keep a saved chunk's locks as recently translated markers; when the save is
+                // skipped or fails, delete them so the strings can be retried right away
+                $chunk_saved = false;
                 if ( ! empty( $chunk_update_strings ) && apply_filters( 'trp_allow_string_saving', true, array(), $chunk_update_strings ) ) {
-                    $this->trp_query->update_strings( $chunk_update_strings, $language_code, array( 'id', 'original', 'translated', 'status', 'original_id' ) );
+                    $chunk_saved = $this->trp_query->update_strings( $chunk_update_strings, $language_code, array( 'id', 'original', 'translated', 'status', 'original_id' ) );
                 }
+                $this->machine_translator->release_locks( $chunk_saved );
             }
 
             $unique_original_strings_with_machine_translations = array_keys( $machine_strings );
@@ -2057,6 +2061,9 @@ class TRP_Translation_Render{
          * not added to $update_strings here. $update_strings below carries only the "similar strings"
          * rows. $machine_strings is still used further down to populate $translated_strings for
          * rendering this request. */
+
+        // strings another request is translating right now must not be inserted as untranslated below: the lock holder inserts them when it saves
+        $lock_skipped_strings = $this->machine_translator ? $this->machine_translator->get_lock_skipped_strings() : array();
 
         // update existing strings without translation if we have one now. also, do not insert duplicates for existing untranslated strings in db
         foreach( $new_strings as $i => $string ){
@@ -2094,7 +2101,7 @@ class TRP_Translation_Render{
 
             }
 
-            if ( isset( $untranslated_list[ $string ] ) || isset( $machine_strings[ $string ] ) ) {
+            if ( isset( $untranslated_list[ $string ] ) || isset( $machine_strings[ $string ] ) || isset( $lock_skipped_strings[ $string ] ) ) {
                 unset( $new_strings[ $i ] );
             }
         }
@@ -2392,26 +2399,24 @@ class TRP_Translation_Render{
             return $args;
         }
 
-        /* Skip email translation in request contexts where TranslatePress does not wrap
+        /* Skip full email translation in request contexts where TranslatePress does not wrap
            gettext strings (wp-login.php, wp-admin, xmlrpc, TP editor requests). There the
            email body carries no trp-gettext markers, so translate_page() would treat every
            line - including security URLs like the password-reset link - as a regular
            dynamic string and persist it to the dictionary, from where it can be disclosed.
-           This mirrors the condition in TRP_Gettext_Manager::processing_gettext_is_needed(),
-           so processing here would never match a marker anyway. See CU-869ehfvac. */
+           Whitelisted conditional shortcodes must still be evaluated because WooCommerce
+           does not process them before wp_mail. See CU-869ehfvac and CU-869ekd2dw. */
         global $pagenow;
         if ( ! $this->url_converter ) {
             $trp                 = TRP_Translate_Press::get_trp_instance();
             $this->url_converter = $trp->get_component( 'url_converter' );
         }
-        if (
+        $skip_email_translation = (
             $pagenow === 'wp-login.php'
             || $pagenow === 'xmlrpc.php'
             || ( is_admin() && ! TRP_Gettext_Manager::is_ajax_on_frontend() )
             || $this->url_converter->is_admin_request()
-        ) {
-            return $args;
-        }
+        );
 
         global $TRP_LANGUAGE;
 
@@ -2442,15 +2447,19 @@ class TRP_Translation_Render{
         );
 
         if ( array_key_exists( 'subject', $args ) ) {
-            $args['subject'] = $this->translate_page(
-                trp_do_these_shortcodes( $args['subject'], $whitelisted_shortcodes )
-            );
+            $args['subject'] = trp_do_these_shortcodes( $args['subject'], $whitelisted_shortcodes );
+
+            if ( ! $skip_email_translation ) {
+                $args['subject'] = $this->translate_page( $args['subject'] );
+            }
         }
 
         if ( array_key_exists( 'message', $args ) ) {
-            $args['message'] = $this->translate_page(
-                trp_do_these_shortcodes( $args['message'], $whitelisted_shortcodes )
-            );
+            $args['message'] = trp_do_these_shortcodes( $args['message'], $whitelisted_shortcodes );
+
+            if ( ! $skip_email_translation ) {
+                $args['message'] = $this->translate_page( $args['message'] );
+            }
         }
 
         if ( $did_switch_language ) {

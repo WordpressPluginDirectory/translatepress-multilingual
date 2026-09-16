@@ -82,7 +82,7 @@ class TRP_Translate_Press{
         define( 'TRP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
         define( 'TRP_PLUGIN_BASE', plugin_basename( __DIR__ . '/index.php' ) );
         define( 'TRP_PLUGIN_SLUG', 'translatepress-multilingual' );
-        define( 'TRP_PLUGIN_VERSION', '3.3.3' );
+        define( 'TRP_PLUGIN_VERSION', '3.3.6' );
 
 	    wp_cache_add_non_persistent_groups(array('trp'));
 
@@ -510,6 +510,9 @@ class TRP_Translate_Press{
         /* handle dynamic texts with gettext */
         $this->loader->add_filter( 'locale', $this->languages, 'change_locale', 99999 );
         $this->loader->add_filter( 'plugin_locale', $this->languages, 'change_locale', 99999 );
+        // determine_locale() picks which .mo files load; align it with the TP language so
+        // frontend AJAX/REST does not load the user's profile-locale catalog.
+        $this->loader->add_filter( 'determine_locale', $this->languages, 'change_determine_locale', 99999 );
 
         $this->loader->add_action( 'init', $this->gettext_manager, 'create_gettext_translated_global' );
         $this->loader->add_action( 'init', $this->gettext_manager, 'initialize_gettext_processing' );
@@ -618,16 +621,25 @@ class TRP_Translate_Press{
         if ( 'translatepress-multilingual' !== $domain ) {
             return $file;
         }
+        if ( ! is_string( $file ) || '' === trim( $file ) || is_dir( $file ) ) {
+            return '';
+        }
         $bundled = TRP_PLUGIN_DIR . 'languages/' . basename( $file );
-        return file_exists( $bundled ) ? $bundled : $file;
+        return is_file( $bundled ) ? $bundled : $file;
     }
 
     public function prefer_bundled_script_translation_file( $file, $handle, $domain ) {
+        if ( ! $file ) {
+            return $file;
+        }
         if ( 'translatepress-multilingual' !== $domain ) {
             return $file;
         }
+        if ( ! is_string( $file ) || '' === trim( $file ) || is_dir( $file ) ) {
+            return '';
+        }
         $bundled = TRP_PLUGIN_DIR . 'languages/' . basename( $file );
-        return file_exists( $bundled ) ? $bundled : $file;
+        return is_file( $bundled ) ? $bundled : $file;
     }
 
     public function init_machine_translation(){
